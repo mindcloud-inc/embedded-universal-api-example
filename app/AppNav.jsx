@@ -10,9 +10,9 @@ import { getSlackContext } from '../lib/getSlackContext.js';
 export default function AppNav() {
   const pathname = usePathname();
   const { integrations } = useMindCloud();
-  const { isSetupComplete } = getSlackContext(integrations);
+  const { hasIntegration } = getSlackContext(integrations);
 
-  const items = isSetupComplete
+  const items = hasIntegration
     ? [
         { href: '/', label: 'Inbox' },
         { href: '/integrations', label: 'Integrations' },

@@ -1,22 +1,13 @@
-// What the API key can tell us about the MindCloud side of setup: which
-// organization it belongs to, and whether Embedded is enabled for it. The
-// setup guide uses this to check off the dashboard steps automatically.
-import { getCompany } from '../../../lib/mindcloud.js';
+// What the API key can tell us about the MindCloud side of setup, used by the
+// setup guide to check off the dashboard steps automatically.
+import { getMindCloudStatus } from '../../../lib/getMindCloudStatus.js';
 
 export async function GET() {
-  const result = await getCompany();
-  const company = result.body?.data?.[0];
+  const status = await getMindCloudStatus();
 
-  if (!company) {
-    return Response.json(
-      { success: false, message: result.body?.message || result.body?.error?.message || 'Could not read your MindCloud organization.' },
-      { status: result.status >= 400 ? result.status : 502 }
-    );
+  if (status.error) {
+    return Response.json({ success: false, message: status.error === 'NO_API_KEY' ? null : status.error, needsApiKey: status.error === 'NO_API_KEY' }, { status: status.status });
   }
 
-  return Response.json({
-    success: true,
-    company: { id: company.id, name: company.name },
-    enableEmbedded: company.settings?.enableEmbedded === true
-  });
+  return Response.json({ success: true, ...status });
 }

@@ -18,7 +18,7 @@ const StepMarker = ({ step, index }) => {
 };
 
 export default function SetupClient() {
-  const { integrations, error, isLoading, refresh, openConnect } = useMindCloud();
+  const { integrations, refresh } = useMindCloud();
   const slack = getSlackContext(integrations);
 
   // Everything the API key can verify about the MindCloud side of setup.
@@ -85,7 +85,7 @@ export default function SetupClient() {
         <p>
           Sign up at{' '}
           <a href="https://app.mindcloud.co/signup" target="_blank" rel="noopener noreferrer">
-            app.mindcloud.co
+            MindCloud Gravity
           </a>
           . Your organization is the account your customers' connections will live under.
         </p>
@@ -106,7 +106,7 @@ export default function SetupClient() {
           <p>
             Create a <strong>Full Access</strong> key at{' '}
             <a href="https://app.mindcloud.co/user/api-keys" target="_blank" rel="noopener noreferrer">
-              Settings → API Keys
+              MindCloud Gravity → Settings → API Keys
             </a>
             , then paste it here. It is stored server-side in <code>.env.local</code> and never sent to the browser.
           </p>
@@ -127,7 +127,7 @@ export default function SetupClient() {
         <p>
           In{' '}
           <a href="https://app.mindcloud.co/embedded" target="_blank" rel="noopener noreferrer">
-            app.mindcloud.co → Embedded
+            MindCloud Gravity → Embedded
           </a>
           , switch on <strong>"Connecting through your codebase?"</strong>. That reveals the Embedded API Integrations page you'll use next.
         </p>
@@ -140,7 +140,7 @@ export default function SetupClient() {
         <p>
           On{' '}
           <a href="https://app.mindcloud.co/embedded/api" target="_blank" rel="noopener noreferrer">
-            Embedded → API → Integrations
+            MindCloud Gravity → Embedded → API → Integrations
           </a>
           , click <strong>Create Integration</strong> and pick <strong>Slack</strong>. That defines what your customers can connect — you do this once, in your account.
         </p>
@@ -148,14 +148,14 @@ export default function SetupClient() {
     },
     {
       done: !!slack.installation,
-      title: 'Connect Slack as a customer would',
+      title: 'Connect Slack as an end user',
       body: (
         <div className="step-row">
-          <p>This opens the same MindCloud dialog your customers see. Sign in to Slack and you're done.</p>
-          {slack.integration && (
-            <button className="btn btn-primary" onClick={() => openConnect(slack.integration.id)}>
-              Connect Slack
-            </button>
+          <p>Go to this sample application's Integrations page and connect Slack the way your customers would.</p>
+          {slack.hasIntegration && (
+            <Link className="btn btn-primary" href="/integrations">
+              Go to Integrations
+            </Link>
           )}
         </div>
       )
@@ -176,7 +176,7 @@ export default function SetupClient() {
 
       {slack.isSetupComplete ? (
         <div className="banner">
-          <span>Setup complete — the Inbox and Integrations pages are unlocked.</span>
+          <span>Setup complete — try "Send to Slack" on a conversation in the Inbox.</span>
           <Link className="btn btn-primary" href="/">
             Go to the Inbox
           </Link>
