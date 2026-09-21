@@ -1,11 +1,12 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import CodeExplorer from './CodeExplorer.jsx';
+import { STACK_EXAMPLES } from './stackExamples.js';
 
 export const metadata = { title: 'Code Implementation — Beacon' };
 
-// The files are read from disk rather than pasted as snippets: what you see
-// here is exactly the code that just ran.
+// The `next` examples are this repo's real files, read from disk: what you see
+// is exactly the code that just ran. Other stacks come from stackExamples.js.
 const SECTIONS = [
   {
     step: '1',
@@ -33,12 +34,16 @@ const SECTIONS = [
     where: 'Backend',
     summary: 'Call any of the 3,400+ apps with one REST shape, addressed by the installationId. Reads and writes are the same call with a different action, and no provider token ever touches your codebase.',
     files: [
-      { file: 'app/api/slack-channels/route.js', caption: 'A read: list the customer\'s Slack channels.' },
+      { file: 'app/api/slack-channels/route.js', caption: "A read: list the customer's Slack channels." },
       { file: 'app/api/send-to-slack/route.js', caption: 'A write: post a message as that customer.' },
       { file: 'lib/mindcloud.js', caption: 'The shared server-side client — the only place the API key is read.' }
     ]
   }
 ];
+
+const LANGUAGES = { js: 'javascript', jsx: 'javascript', py: 'python', go: 'go', rb: 'ruby', php: 'php', sh: 'bash', html: 'xml' };
+
+const languageFor = (file) => LANGUAGES[file.split('.').pop()] || 'javascript';
 
 const readFile = (file) => {
   try {
@@ -48,18 +53,23 @@ const readFile = (file) => {
   }
 };
 
+const buildExamples = (section) => {
+  const stackExamples = STACK_EXAMPLES[section.step] || {};
+
+  return {
+    next: section.files.map((file) => ({ ...file, code: readFile(file.file), language: languageFor(file.file) })),
+    ...Object.fromEntries(Object.entries(stackExamples).map(([stack, example]) => [stack, [{ ...example, language: languageFor(example.file) }]]))
+  };
+};
+
 export default function CodePage() {
-  // Read the files on the server, hand the contents to the client explorer.
-  const sections = SECTIONS.map((section) => ({
-    ...section,
-    files: section.files.map((file) => ({ ...file, code: readFile(file.file) }))
-  }));
+  const sections = SECTIONS.map(({ files, ...section }) => ({ ...section, examples: buildExamples({ ...section, files }) }));
 
   return (
     <>
       <header className="page-header">
         <h1>Code Implementation</h1>
-        <p>You just ran MindCloud Embedded end to end: a customer connected their own Slack, and this app used that connection through the Universal API. Here is every piece, so you can do the same in your codebase.</p>
+        <p>You just ran MindCloud Embedded end to end: a customer connected their own Slack, and this app used that connection through the Universal API. Pick your stack below to see each piece in your language.</p>
       </header>
 
       <CodeExplorer sections={sections} />

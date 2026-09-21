@@ -2,40 +2,24 @@
 
 import { useState } from 'react';
 import ArchitectureDiagram from './ArchitectureDiagram.jsx';
+import CodeBlock from './CodeBlock.jsx';
+import { BACKEND_STACKS, FRONTEND_STACKS } from './stackExamples.js';
 
-const AUDIENCES = [
-  { value: 'all', label: 'All pieces' },
-  { value: 'Backend', label: 'Backend only' },
-  { value: 'Frontend', label: 'Frontend only' }
+const VIEWS = [
+  { value: 'all', label: 'All' },
+  { value: 'Backend', label: 'Backend' },
+  { value: 'Frontend', label: 'Frontend' }
 ];
 
-const CopyButton = ({ code }) => {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(code);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      setCopied(false);
-    }
-  };
-
-  return (
-    <button className={`copy-btn ${copied ? 'copied' : ''}`} onClick={handleCopy} type="button">
-      {copied ? 'Copied' : 'Copy'}
-    </button>
-  );
-};
-
 export default function CodeExplorer({ sections }) {
-  const [audience, setAudience] = useState('all');
+  const [view, setView] = useState('all');
+  const [backendStack, setBackendStack] = useState('next');
+  const [frontendStack, setFrontendStack] = useState('next');
   const [showDiagram, setShowDiagram] = useState(true);
   // Collapsed by default: three one-line rows you can scan, opened on demand.
   const [openSteps, setOpenSteps] = useState(() => new Set());
 
-  const visibleSections = audience === 'all' ? sections : sections.filter((section) => section.where === audience);
+  const visibleSections = view === 'all' ? sections : sections.filter((section) => section.where === view);
 
   const toggleStep = (step) => {
     setOpenSteps((prev) => {
@@ -52,17 +36,44 @@ export default function CodeExplorer({ sections }) {
   return (
     <>
       <div className="code-controls">
-        <label htmlFor="code-audience">Show</label>
-        <select id="code-audience" value={audience} onChange={(event) => setAudience(event.target.value)}>
-          {AUDIENCES.map((option) => (
-            <option key={option.value} value={option.value}>
+        <div className="segmented" role="tablist" aria-label="Which pieces to show">
+          {VIEWS.map((option) => (
+            <button key={option.value} type="button" role="tab" aria-selected={view === option.value} className={view === option.value ? 'active' : ''} onClick={() => setView(option.value)}>
               {option.label}
-            </option>
+            </button>
           ))}
-        </select>
+        </div>
+
         <button className="btn btn-ghost" type="button" onClick={() => setShowDiagram((previous) => !previous)}>
           {showDiagram ? 'Hide diagram' : 'Show diagram'}
         </button>
+      </div>
+
+      <div className="stack-controls">
+        {view !== 'Frontend' && (
+          <label className="stack-picker">
+            <span>Backend</span>
+            <select value={backendStack} onChange={(event) => setBackendStack(event.target.value)}>
+              {BACKEND_STACKS.map((stack) => (
+                <option key={stack.value} value={stack.value}>
+                  {stack.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {view !== 'Backend' && (
+          <label className="stack-picker">
+            <span>Frontend</span>
+            <select value={frontendStack} onChange={(event) => setFrontendStack(event.target.value)}>
+              {FRONTEND_STACKS.map((stack) => (
+                <option key={stack.value} value={stack.value}>
+                  {stack.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
 
       {showDiagram && (
@@ -73,6 +84,8 @@ export default function CodeExplorer({ sections }) {
 
       {visibleSections.map((section) => {
         const isOpen = openSteps.has(section.step);
+        const stack = section.where === 'Frontend' ? frontendStack : backendStack;
+        const files = section.examples[stack] || section.examples.next;
 
         return (
           <section key={section.step} className={`code-section ${isOpen ? 'open' : ''}`}>
@@ -81,7 +94,7 @@ export default function CodeExplorer({ sections }) {
               <span className="code-section-title">{section.title}</span>
               <span className="code-section-where">{section.where}</span>
               <span className="code-section-count">
-                {section.files.length} {section.files.length === 1 ? 'file' : 'files'}
+                {files.length} {files.length === 1 ? 'file' : 'files'}
               </span>
               <span className={`code-section-chevron ${isOpen ? 'open' : ''}`} aria-hidden="true">
                 ⌄
@@ -91,14 +104,13 @@ export default function CodeExplorer({ sections }) {
             {isOpen && (
               <div className="code-section-body">
                 <p className="code-section-summary">{section.summary}</p>
-                {section.files.map((file) => (
+                {files.map((file) => (
                   <div key={file.file} className="code-file">
                     <div className="code-file-header">
                       <code className="code-file-name">{file.file}</code>
                       <span className="code-file-caption">{file.caption}</span>
-                      <CopyButton code={file.code} />
                     </div>
-                    <pre className="code-block">{file.code}</pre>
+                    <CodeBlock code={file.code} language={file.language} />
                   </div>
                 ))}
               </div>

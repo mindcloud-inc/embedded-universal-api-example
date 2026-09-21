@@ -520,14 +520,68 @@ code {
   font-weight: 500;
 }
 
-.code-controls select {
+/* Segmented slider: All | Backend | Frontend */
+.segmented {
+  display: inline-flex;
+  background: #eaeef3;
+  border-radius: 9px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.segmented button {
+  border: none;
+  background: none;
   font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: #5a6674;
+  padding: 6px 16px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.segmented button:hover {
+  color: #1c2530;
+}
+
+.segmented button.active {
+  background: #fff;
+  color: #1c2530;
+  box-shadow: 0 1px 3px rgba(16, 24, 38, 0.12);
+}
+
+.stack-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.stack-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #8a94a3;
+}
+
+.stack-picker select {
+  font-family: inherit;
+  font-size: 13px;
   font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: #1c2530;
   border: 1px solid #d6dce3;
   border-radius: 7px;
   padding: 6px 9px;
   background: #fff;
-  min-width: 160px;
+  min-width: 190px;
 }
 
 .code-section {
@@ -628,27 +682,43 @@ code {
   margin-bottom: 8px;
 }
 
-.copy-btn {
-  margin-left: auto;
-  flex-shrink: 0;
-  border: 1px solid #d6dce3;
-  background: #fff;
-  color: #5a6674;
-  border-radius: 6px;
-  padding: 4px 10px;
-  font-size: 12px;
-  font-weight: 500;
+/* Floating copy button, inside the code block's top-right corner. */
+.code-block-wrapper {
+  position: relative;
+}
+
+.code-copy {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.07);
+  color: #9aa5b4;
   cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease, background 0.15s ease;
 }
 
-.copy-btn:hover {
-  background: #f5f6f8;
-  color: #1c2530;
+.code-block-wrapper:hover .code-copy,
+.code-copy:focus-visible {
+  opacity: 1;
 }
 
-.copy-btn.copied {
-  border-color: #1d9d5f;
-  color: #177245;
+.code-copy:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.code-copy.copied {
+  opacity: 1;
+  color: #5ddc9a;
+  border-color: rgba(93, 220, 154, 0.5);
 }
 
 .code-file-name {
@@ -665,6 +735,58 @@ code {
 .code-block {
   max-height: 460px;
   overflow: auto;
+}
+
+.code-block code {
+  background: none;
+  padding: 0;
+  font-size: inherit;
+  color: inherit;
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: #6f7d90;
+  font-style: italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-type {
+  color: #c792ea;
+}
+
+.hljs-string,
+.hljs-attr,
+.hljs-symbol,
+.hljs-regexp {
+  color: #9fd3a0;
+}
+
+.hljs-title,
+.hljs-title.function_,
+.hljs-section,
+.hljs-name {
+  color: #8ab4f8;
+}
+
+.hljs-number,
+.hljs-built_in,
+.hljs-class .hljs-title {
+  color: #f0b37e;
+}
+
+.hljs-variable,
+.hljs-template-variable,
+.hljs-params,
+.hljs-property {
+  color: #d9e1ec;
+}
+
+.hljs-meta,
+.hljs-tag {
+  color: #7fc8d8;
 }
 
 /* ---- skeletons ---- */
