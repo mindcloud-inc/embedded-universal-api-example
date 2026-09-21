@@ -4,7 +4,7 @@
 // calls: the channel picker reads their Slack channel list, and Send posts to
 // the channel they chose.
 import { useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useMindCloud } from '../lib/useMindCloud.js';
 import { getSlackContext } from '../lib/getSlackContext.js';
 
@@ -16,8 +16,17 @@ const CONVERSATIONS = [
 ];
 
 export default function InboxClient() {
-  const { integrations, error, isSettled } = useMindCloud();
+  const router = useRouter();
+  const { integrations, isSettled } = useMindCloud();
   const { installation, isSetupComplete } = getSlackContext(integrations);
+
+  // Nothing to do here until Slack is connected — send people to the guide
+  // rather than showing an inbox that cannot work yet.
+  useEffect(() => {
+    if (isSettled && !isSetupComplete) {
+      router.replace('/setup');
+    }
+  }, [isSettled, isSetupComplete, router]);
 
   const [channels, setChannels] = useState(null);
   const [channelsError, setChannelsError] = useState(null);
@@ -87,9 +96,9 @@ export default function InboxClient() {
     }
   };
 
-  // Skeletons mirror the real layout: "finish setup" must never flash before
-  // we know whether setup is finished.
-  if (!isSettled) {
+  // Skeletons mirror the real layout: nothing flashes before we know whether
+  // setup is finished, and they also cover the redirect above.
+  if (!isSettled || !isSetupComplete) {
     return (
       <>
         <div className="channel-bar">
@@ -112,30 +121,6 @@ export default function InboxClient() {
           ))}
         </div>
       </>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="banner banner-error">
-        <span>{error}</span>
-        <Link className="btn" href="/setup">
-          Open the setup guide
-        </Link>
-      </div>
-    );
-  }
-
-  if (!isSetupComplete) {
-    return (
-      <div className="notice">
-        <p>
-          <strong>Finish setup first.</strong> Connect a Slack account and this inbox can post conversations straight into it.
-        </p>
-        <Link className="btn btn-primary" href="/setup">
-          Open the setup guide
-        </Link>
-      </div>
     );
   }
 
