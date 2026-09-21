@@ -9,12 +9,14 @@ import { useCallback, useEffect, useState } from 'react';
 import { useMindCloud } from '../../lib/useMindCloud.js';
 import { getSlackContext } from '../../lib/getSlackContext.js';
 
+// Every step shows its number until it is verified, then flips to a check.
+// Steps this app can't verify (dashboard-only) simply keep their number.
 const StepMarker = ({ step, index }) => {
-  if (step.manual) {
-    return <span className="status-dot number">{index + 1}</span>;
+  if (!step.manual && step.done) {
+    return <span className="status-dot done">✓</span>;
   }
 
-  return <span className={`status-dot ${step.done ? 'done' : ''}`}>{step.done ? '✓' : ''}</span>;
+  return <span className="status-dot number">{index + 1}</span>;
 };
 
 export default function SetupClient() {
