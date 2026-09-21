@@ -3,5 +3,6 @@ node_modules/
 out/
 .env.local
 data/
+repo/
 npm-debug.log*
 .DS_Store
