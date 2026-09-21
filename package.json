@@ -1,0 +1,17 @@
+{
+  "name": "mindcloud-embedded-universal-api-example",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Minimal example SaaS app: MindCloud embedded integrations page + Universal API calls with end-user connections.",
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "dev": "next dev -p 4321",
+    "build": "next build",
+    "start": "next start -p 4321"
+  },
+  "dependencies": {
+    "next": "^15.5.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  }
+}

@@ -1,0 +1,15 @@
+import IntegrationsClient from './IntegrationsClient.jsx';
+
+export const metadata = { title: 'Integrations — Beacon' };
+
+export default function IntegrationsPage() {
+  return (
+    <>
+      <header className="page-header">
+        <h1>Integrations</h1>
+        <p>Connect the tools your team already uses. Connections are stored and refreshed by MindCloud — this app never touches a provider token.</p>
+      </header>
+      <IntegrationsClient />
+    </>
+  );
+}
