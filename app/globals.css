@@ -256,6 +256,14 @@ code {
   text-decoration: underline;
 }
 
+/* Transient confirmation on the send button itself. */
+.btn-sent,
+.btn-sent:disabled {
+  border-color: #1d9d5f;
+  color: #177245;
+  opacity: 1;
+}
+
 /* ---- inbox ---- */
 
 .inbox {
@@ -487,6 +495,102 @@ code {
   flex-shrink: 0;
 }
 
+/* ---- code implementation page ---- */
+
+.diagram-card {
+  background: #fff;
+  border: 1px solid #e3e7ec;
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 28px;
+}
+
+.architecture-diagram {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.code-section {
+  margin-bottom: 32px;
+}
+
+.code-section-header {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.code-section-step {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.code-section-header h2 {
+  font-size: 16px;
+  margin: 2px 0 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.code-section-where {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #5a6674;
+  background: #eef1f4;
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+
+.code-section-header p {
+  margin: 0;
+  font-size: 13.5px;
+  color: #5a6674;
+  line-height: 1.55;
+  max-width: 660px;
+}
+
+.code-file {
+  margin-bottom: 14px;
+}
+
+.code-file-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.code-file-name {
+  font-size: 12px;
+  background: #eef1f4;
+  color: #1c2530;
+}
+
+.code-file-caption {
+  font-size: 12.5px;
+  color: #8a94a3;
+}
+
+.code-block {
+  max-height: 460px;
+  overflow: auto;
+}
+
 /* ---- skeletons ---- */
 
 @keyframes skeleton-pulse {
@@ -539,6 +643,13 @@ code {
 
 .skeleton-button {
   width: 96px;
+  height: 32px;
+  border-radius: 7px;
+  flex-shrink: 0;
+}
+
+.skeleton-select {
+  width: 180px;
   height: 32px;
   border-radius: 7px;
 }

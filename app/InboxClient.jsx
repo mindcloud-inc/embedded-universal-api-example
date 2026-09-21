@@ -16,7 +16,7 @@ const CONVERSATIONS = [
 ];
 
 export default function InboxClient() {
-  const { integrations, error } = useMindCloud();
+  const { integrations, error, isSettled } = useMindCloud();
   const { installation, isSetupComplete } = getSlackContext(integrations);
 
   const [channels, setChannels] = useState(null);
@@ -72,14 +72,48 @@ export default function InboxClient() {
       });
       const body = await response.json();
 
-      setSendState((prev) => ({
-        ...prev,
-        [conversation.subject]: body.success ? { status: 'sent', request: body.request } : { status: 'error', message: body.message }
-      }));
+      if (!body.success) {
+        setSendState((prev) => ({ ...prev, [conversation.subject]: { status: 'error', message: body.message } }));
+        return;
+      }
+
+      // Confirm on the button itself, then settle back to the resting state.
+      setSendState((prev) => ({ ...prev, [conversation.subject]: { status: 'sent' } }));
+      setTimeout(() => {
+        setSendState((prev) => ({ ...prev, [conversation.subject]: undefined }));
+      }, 2000);
     } catch (sendError) {
       setSendState((prev) => ({ ...prev, [conversation.subject]: { status: 'error', message: sendError.message } }));
     }
   };
+
+  // Skeletons mirror the real layout: "finish setup" must never flash before
+  // we know whether setup is finished.
+  if (!isSettled) {
+    return (
+      <>
+        <div className="channel-bar">
+          <div className="channel-bar-left">
+            <span className="skeleton skeleton-line" style={{ width: '56px' }} />
+            <span className="skeleton skeleton-select" />
+          </div>
+        </div>
+        <div className="inbox">
+          {[0, 1, 2, 3].map((index) => (
+            <div key={index} className="inbox-row">
+              <div className="inbox-main">
+                <div style={{ flex: 1 }}>
+                  <span className="skeleton skeleton-line" style={{ width: '140px' }} />
+                  <span className="skeleton skeleton-line" style={{ width: '260px' }} />
+                </div>
+                <span className="skeleton skeleton-button" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </>
+    );
+  }
 
   if (error) {
     return (
@@ -104,8 +138,6 @@ export default function InboxClient() {
       </div>
     );
   }
-
-  const selectedChannel = (channels || []).find((channel) => channel.id === channelId);
 
   return (
     <>
@@ -139,22 +171,12 @@ export default function InboxClient() {
                 <div className="inbox-meta">
                   <span className="chip">{conversation.tag}</span>
                   <span className="inbox-time">{conversation.time}</span>
-                  <button className="btn" onClick={() => handleSend(conversation)} disabled={!channelId || state?.status === 'sending'}>
-                    {state?.status === 'sending' ? 'Sending…' : 'Send to Slack'}
+                  <button className={`btn ${state?.status === 'sent' ? 'btn-sent' : ''}`} onClick={() => handleSend(conversation)} disabled={!channelId || state?.status === 'sending' || state?.status === 'sent'}>
+                    {state?.status === 'sending' ? 'Sending' : state?.status === 'sent' ? 'Sent to Slack' : 'Send to Slack'}
                   </button>
                 </div>
               </div>
 
-              {state?.status === 'sent' && (
-                <div className="inbox-result">
-                  <span className="chip chip-green">Posted to #{selectedChannel?.name}</span>
-                  <details>
-                    <summary>See how this worked</summary>
-                    <p className="result-hint">Your backend sent this with its MindCloud API key — no Slack tokens involved:</p>
-                    <pre className="code-block">{`${state.request.url}\n${JSON.stringify(state.request.body, null, 2)}`}</pre>
-                  </details>
-                </div>
-              )}
               {state?.status === 'error' && (
                 <div className="inbox-result">
                   <span className="chip chip-red">{state.message}</span>
