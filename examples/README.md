@@ -41,5 +41,13 @@ that stack.
    addressed as `list-channels`, `sendChannelMessage` as `send-channel-message`.
 3. `sdk.getIntegrations()` with no arguments returns the SDK's cached list. Pass
    any options object (e.g. `{ includeWorkflows: true }`) to force a refetch.
+4. Use the SDK's `onClose` callback, not `onAuthenticationComplete`: only
+   `onClose` fires when the dialog is dismissed with the X or the backdrop.
+5. Resolve the `installationId` from your own session, never from the request
+   body — it is a handle to that customer's connected account. Note you have to
+   store the mapping yourself: connections carry no `endUserId`, so
+   `/v2/connections` cannot be filtered by end user.
+
+Per-app action docs live at `https://mindcloud.co/docs/universal/rest/<appSlug>/latest`.
 
 Full contracts and error codes: [../LLM.md](../LLM.md).

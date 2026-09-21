@@ -1,4 +1,5 @@
 import AppNav from './AppNav.jsx';
+import { MindCloudProvider } from '../lib/MindCloudProvider.jsx';
 import './globals.css';
 
 export const metadata = {
@@ -10,7 +11,8 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        <div className="shell">
+        <MindCloudProvider>
+          <div className="shell">
           <aside className="sidebar">
             <div className="brand">
               <span className="brand-dot" /> Beacon
@@ -19,7 +21,8 @@ export default function RootLayout({ children }) {
             <div className="sidebar-footer">Powered by MindCloud</div>
           </aside>
           <main className="main">{children}</main>
-        </div>
+          </div>
+        </MindCloudProvider>
       </body>
     </html>
   );

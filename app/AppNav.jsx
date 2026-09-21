@@ -4,7 +4,7 @@
 // setup guide alone; the product pages appear once Slack is connected.
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useMindCloud } from '../lib/useMindCloud.js';
+import { useMindCloud } from '../lib/MindCloudProvider.jsx';
 import { getSlackContext } from '../lib/getSlackContext.js';
 
 export default function AppNav() {

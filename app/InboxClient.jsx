@@ -5,7 +5,7 @@
 // the channel they chose.
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useMindCloud } from '../lib/useMindCloud.js';
+import { useMindCloud } from '../lib/MindCloudProvider.jsx';
 import { getSlackContext } from '../lib/getSlackContext.js';
 
 const CONVERSATIONS = [
@@ -43,11 +43,15 @@ export default function InboxClient() {
     setChannelsError(null);
 
     try {
-      const response = await fetch('/api/slack-channels', {
+      // Tell the server which installation this session connected; it stores it
+      // against the session's user, and every action call reads it from there.
+      await fetch('/api/installation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ installationId })
       });
+
+      const response = await fetch('/api/slack-channels', { method: 'POST' });
       const body = await response.json();
 
       if (!body.success) {
@@ -74,7 +78,6 @@ export default function InboxClient() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          installationId,
           channelId,
           text: `New conversation from ${conversation.from}: "${conversation.subject}"`
         })

@@ -5,7 +5,7 @@
 // settled — an unloaded step is indistinguishable from an unfinished one.
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { useMindCloud } from '../../lib/useMindCloud.js';
+import { useMindCloud } from '../../lib/MindCloudProvider.jsx';
 import { getSlackContext } from '../../lib/getSlackContext.js';
 
 // Every step shows its number until it is verified, then flips to a check.
@@ -91,14 +91,20 @@ export default function SetupClient() {
           <a href="https://app.mindcloud.co/signup" target="_blank" rel="noopener noreferrer">
             MindCloud Gravity
           </a>
-          . Your organization is the account your customers' connections will live under.
+          . Your organization is the account your customers' connections will live under — this checks off once you add your API key below.
         </p>
       )
     },
     {
       done: status?.enableEmbedded === true,
       title: 'Ask your MindCloud representative to enable Embedded',
-      body: status?.enableEmbedded ? <p>Embedded is enabled for this organization.</p> : <p>Embedded is enabled per organization by MindCloud. Your sales representative can turn it on for your account.</p>
+      body: status?.enableEmbedded ? (
+        <p>Embedded is enabled for this organization.</p>
+      ) : (
+        <p>
+          <strong>Start this now — it is the only step with a human in the loop.</strong> Embedded is switched on per organization by MindCloud, and until it is, the steps below cannot complete.
+        </p>
+      )
     },
     {
       done: !!status?.company,
@@ -128,16 +134,16 @@ export default function SetupClient() {
       // Creating an API integration is only possible once this is on, so the
       // integration existing is proof enough.
       done: !!slack.integration,
-      title: 'Turn on API access in Embedded',
+      title: 'Show the API pages in the dashboard',
       body: slack.integration ? (
-        <p>API access is on for this organization.</p>
+        <p>The Embedded API pages are showing for your dashboard user.</p>
       ) : (
         <p>
           In{' '}
           <a href="https://app.mindcloud.co/embedded" target="_blank" rel="noopener noreferrer">
             MindCloud Gravity → Embedded
           </a>
-          , switch on <strong>"Connecting through your codebase?"</strong>. That reveals the Embedded API Integrations page you'll use next.
+          , switch on <strong>"Connecting through your codebase?"</strong>. This only reveals the Embedded API pages for your own dashboard user — it is a navigation preference, not an access gate.
         </p>
       )
     },

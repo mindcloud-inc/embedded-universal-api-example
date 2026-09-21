@@ -8,7 +8,7 @@ You are looking at a complete, working reference implementation of MindCloud's e
 
 1. **An in-app integrations page** — the SaaS vendor's customers ("end users") connect their own accounts (Slack here, any app in the MindCloud catalog generally) through MindCloud's embedded SDK, without leaving the vendor's app.
 2. **Programmatic use of those connections** — the vendor's backend runs actions against the connected app through the Universal API, one REST shape for every app, addressed by `installationId`. Provider tokens are stored and refreshed by MindCloud and never touch the vendor's code.
-3. **A guided setup** — the app starts with zero configuration; `/setup` takes the API key in-page (validated, then written to `.env.local` server-side) and walks the whole path (MindCloud org → Embedded enabled → API key → turn on API access in Embedded → create the Slack integration → connect Slack). Every step the key can verify (org, `settings.enableEmbedded`, integration, installation) self-checks; only the nav toggle, which is a dashboard user preference, shows a plain step number. Until the verifiable ones pass, the nav shows only the setup guide; the product pages unlock when setup completes.
+3. **A guided setup** — the app starts with zero configuration; `/setup` takes the API key in-page (validated, then written to `.env.local` server-side) and walks the whole path (MindCloud org → Embedded enabled → API key → turn on API access in Embedded → create the Slack integration → connect Slack). Every step self-checks: the org and `company.embedded.isEnabled` come from `/v2/me`, and the integration and installation come from the SDK. The "turn on API access" step is inferred from the integration existing, because you cannot create an API integration without it. Until the verifiable ones pass, the nav shows only the setup guide; the product pages unlock when setup completes.
 
 ## Core concepts
 
@@ -45,7 +45,7 @@ Vendor backend (the MindCloud API key lives ONLY here)
 | --- | --- |
 | `lib/apiKey.js` | Resolves the API key from env or `.env.local`; the setup page's key form persists it here |
 | `app/api/configure/route.js` | Validates a pasted API key against MindCloud, then saves it server-side |
-| `app/api/mindcloud-status/route.js` | Reads the org + `settings.enableEmbedded` so the setup guide can self-check |
+| `app/api/mindcloud-status/route.js` | Reads the org + `company.embedded.isEnabled` from `/v2/me` so the setup guide can self-check |
 | `lib/mindcloud.js` | Server-side MindCloud API client — the only place the API key is used |
 | `lib/demoUserStore.js` | Stand-in for the vendor's database: maps app user id → MindCloud end-user id (create once, reuse forever) |
 | `lib/useMindCloud.js` | Client hook: token from our backend → SDK script → `setToken` → integrations; `openConnect`/`openManage` open the MindCloud dialog with `onClose: refresh` |
@@ -97,9 +97,14 @@ const sdk = window.MindCloud({ baseUrl: EMBEDDED_BASE });
 sdk.setToken(token);
 const integrations = await sdk.getIntegrations();
 // each: { id, name, description, app: { iconUrl, slug }, apps: [...], installations: [{ id, isInstalled, metadata, apps: [...] }] }
-sdk.install({ integrationId, onAuthenticationComplete: refresh });   // new installation
-sdk.modify({ installationId, onAuthenticationComplete: refresh });   // manage existing
+sdk.install({ integrationId, onClose: refresh });   // new installation
+sdk.modify({ installationId, onClose: refresh });   // manage existing
 ```
+
+Use `onClose`, not `onAuthenticationComplete`. Both exist, but
+`onAuthenticationComplete` only fires on a successful credential save — it
+misses the X, the backdrop, and abandoned OAuth popups, which leaves the page
+showing stale state after a connect the user actually completed.
 
 Do not pass `appBaseUrl` — the OAuth popup must open on MindCloud's own origin. The modal owns the whole connect UX: credential forms, OAuth popups, and (for integrations that declare metadata definitions) a per-installation Options form.
 
@@ -147,7 +152,31 @@ GET /v2/universal/apps/{appSlug}/actions/{actionSlug}   — full argument schema
 GET /v2/connections?where=installationId=="install_..." — an installation's connections
 ```
 
-Per-app human docs with the same slugs and schemas: https://mindcloud.co/docs/universal
+Per-app human docs use the pattern `https://mindcloud.co/docs/universal/rest/<appSlug>/latest`
+(for example `.../rest/slack/latest`). The bare `/docs/universal` redirects to a
+generic landing page, so link the per-app path.
+
+## Traps worth knowing before you copy this
+
+1. **The SDK reports failures as emptiness.** `getIntegrations()` catches its own
+   errors and returns `[]`, so an expired or wrong-company token looks exactly
+   like "this customer has no integrations". Check the key separately
+   (`GET /v2/me`) before telling anyone to go create an integration.
+2. **`installationId` is a bearer handle.** Anyone who has one can act on that
+   customer's connected account. Never accept it from the browser: resolve it
+   from your session (see `lib/installationStore.js` and the action routes).
+3. **You must keep the user → installation mapping yourself.** Credentials
+   created through the embedded SDK carry `installation_id` but **not**
+   `end_user_id`, so `GET /v2/connections` cannot be filtered by end user.
+   Capture the installationId when the customer connects and store it on your
+   user row.
+4. **Mount the SDK once.** Each component that loads it independently mints its
+   own end-user token and keeps its own cache; put it behind one provider
+   (`lib/MindCloudProvider.jsx`).
+5. **Whose OAuth app the customer sees:** MindCloud's. The consent screen shows
+   MindCloud's registered client for that provider, and the embedded surfaces
+   documented here expose no bring-your-own-client configuration. If you need
+   your own branding on the consent screen, raise it with MindCloud.
 
 ## Environment
 

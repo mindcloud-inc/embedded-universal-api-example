@@ -1,12 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+'use client';
 
-// The whole client-side embedded flow, shared by every page:
-//   1. ask OUR backend for an end-user token   (POST /api/embedded-token)
-//   2. load the MindCloud embedded SDK          (one script tag)
-//   3. sdk.setToken(token) + load integrations
-// The SDK owns the connect UI (credential forms, OAuth popups, options), so
-// pages just render data and call sdk.install() / sdk.modify().
+// One SDK instance, one token, one integrations cache for the whole page.
+//
+// Without a provider every component that needs integrations mints its own
+// end-user token and keeps its own copy — two on this app's simplest page.
+// Mount this once at the layout and read it with useMindCloud().
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+
 const EMBEDDED_BASE_URL = process.env.NEXT_PUBLIC_MINDCLOUD_EMBEDDED_BASE_URL || 'https://embedded.mindcloud.co';
+
+const MindCloudContext = createContext(null);
 
 const loadSdkScript = () => {
   if (window.MindCloud) {
@@ -23,7 +26,7 @@ const loadSdkScript = () => {
   });
 };
 
-export const useMindCloud = () => {
+export const MindCloudProvider = ({ children }) => {
   const sdkRef = useRef(null);
   const [integrations, setIntegrations] = useState(null);
   const [error, setError] = useState(null);
@@ -33,7 +36,7 @@ export const useMindCloud = () => {
       return;
     }
 
-    // Passing options forces the SDK to refetch instead of returning its cache.
+    // Passing options forces a refetch; a bare call returns the SDK's cache.
     const list = await sdkRef.current.getIntegrations({ includeWorkflows: true });
     setIntegrations(list || []);
   }, []);
@@ -43,6 +46,7 @@ export const useMindCloud = () => {
       try {
         const tokenResponse = await fetch('/api/embedded-token', { method: 'POST' });
         const tokenBody = await tokenResponse.json();
+
         if (!tokenBody.token) {
           throw new Error(tokenBody.message === 'NO_API_KEY' ? 'Add your MindCloud API key in the Demo Setup Guide to get started.' : tokenBody.message || 'Could not get an end-user token.');
         }
@@ -59,12 +63,29 @@ export const useMindCloud = () => {
     init();
   }, [refresh]);
 
-  // Refresh whenever a connect/manage modal session ends, whatever way it ends.
-  const openConnect = useCallback((integrationId) => sdkRef.current?.install({ integrationId, onClose: refresh }), [refresh]);
-  const openManage = useCallback((installationId) => sdkRef.current?.modify({ installationId, onClose: refresh }), [refresh]);
+  const value = {
+    integrations,
+    error,
+    isLoading: !integrations && !error,
+    // Until both the token call and the load have resolved, "not connected" is
+    // indistinguishable from "not loaded yet".
+    isSettled: integrations !== null || !!error,
+    refresh,
+    // onClose fires however the dialog is dismissed (Finish, X, backdrop) —
+    // onAuthenticationComplete does not, so it misses abandoned OAuth popups.
+    openConnect: (integrationId) => sdkRef.current?.install({ integrationId, onClose: refresh }),
+    openManage: (installationId) => sdkRef.current?.modify({ installationId, onClose: refresh })
+  };
 
-  // `isSettled` is the signal to render state-dependent UI: until the token
-  // call and the integrations load have both resolved (or failed), "not done"
-  // is indistinguishable from "not loaded yet".
-  return { integrations, error, isLoading: !integrations && !error, isSettled: integrations !== null || !!error, refresh, openConnect, openManage };
+  return <MindCloudContext.Provider value={value}>{children}</MindCloudContext.Provider>;
+};
+
+export const useMindCloud = () => {
+  const context = useContext(MindCloudContext);
+
+  if (!context) {
+    throw new Error('useMindCloud must be used inside <MindCloudProvider>');
+  }
+
+  return context;
 };

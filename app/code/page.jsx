@@ -15,6 +15,7 @@ const SECTIONS = [
     summary: 'MindCloud needs to know which of your customers is connecting. Create the end user once and store the id against your own user record, then mint a short-lived token whenever they open your integrations page. Your API key never leaves the server.',
     files: [
       { file: 'app/api/embedded-token/route.js', caption: 'Create-or-reuse the end user, then mint their token.' },
+      { file: 'lib/session.js', caption: 'Who is asking. Replace this with your real session lookup.' },
       { file: 'lib/demoUserStore.js', caption: 'Stands in for your users table. In your app this is a column, not a JSON file.' }
     ]
   },
@@ -24,7 +25,7 @@ const SECTIONS = [
     where: 'Frontend',
     summary: 'Load the SDK with that token and render whatever UI you like around it. The connect dialog itself — credential forms, OAuth popups, per-installation options — is MindCloud-hosted, so there is nothing to build or maintain.',
     files: [
-      { file: 'lib/useMindCloud.js', caption: 'Token → SDK script → setToken → integrations, plus openConnect/openManage.' },
+      { file: 'lib/MindCloudProvider.jsx', caption: 'One SDK instance and one token for the whole page, shared through context.' },
       { file: 'app/integrations/IntegrationsClient.jsx', caption: 'Your own integrations page: cards rendered from sdk.getIntegrations().' }
     ]
   },
@@ -34,6 +35,7 @@ const SECTIONS = [
     where: 'Backend',
     summary: 'Call any of the 3,400+ apps with one REST shape, addressed by the installationId. Reads and writes are the same call with a different action, and no provider token ever touches your codebase.',
     files: [
+      { file: 'lib/installationStore.js', caption: "Your user → their installation. You must keep this mapping yourself." },
       { file: 'app/api/slack-channels/route.js', caption: "A read: list the customer's Slack channels." },
       { file: 'app/api/send-to-slack/route.js', caption: 'A write: post a message as that customer.' },
       { file: 'lib/mindcloud.js', caption: 'The shared server-side client — the only place the API key is read.' }

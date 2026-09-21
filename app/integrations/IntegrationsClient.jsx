@@ -4,7 +4,7 @@
 // heavy lifting (credential forms, OAuth popups, the Options tab) is the
 // MindCloud modal — this file only renders data from sdk.getIntegrations().
 import Link from 'next/link';
-import { useMindCloud } from '../../lib/useMindCloud.js';
+import { useMindCloud } from '../../lib/MindCloudProvider.jsx';
 
 const getStatus = (integration) => {
   const installations = integration.installations || [];
