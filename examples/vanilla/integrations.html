@@ -1,0 +1,30 @@
+<!-- Step 2 — Let the customer connect (no framework) -->
+<script src="https://embedded.mindcloud.co/assets/embedded/sdk.1.0.0.min.js"></script>
+<div id="integrations"></div>
+
+<script>
+  const sdk = window.MindCloud({ baseUrl: 'https://embedded.mindcloud.co' });
+
+  const render = (integrations) => {
+    document.getElementById('integrations').innerHTML = integrations
+      .map((integration) => `<button data-id="${integration.id}">Connect ${integration.name}</button>`)
+      .join('');
+  };
+
+  // Pass any options object to force a refetch — a bare call returns the cache.
+  const refresh = async () => render(await sdk.getIntegrations({ includeWorkflows: true }));
+
+  (async () => {
+    const { token } = await fetch('/api/embedded-token', { method: 'POST' }).then((response) => response.json());
+    sdk.setToken(token);
+    await refresh();
+  })();
+
+  document.getElementById('integrations').addEventListener('click', (event) => {
+    const integrationId = event.target.dataset.id;
+    // onClose fires however the dialog is dismissed — the reliable refetch hook.
+    if (integrationId) {
+      sdk.install({ integrationId, onClose: refresh });
+    }
+  });
+</script>

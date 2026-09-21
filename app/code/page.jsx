@@ -58,7 +58,7 @@ const buildExamples = (section) => {
 
   return {
     next: section.files.map((file) => ({ ...file, code: readFile(file.file), language: languageFor(file.file) })),
-    ...Object.fromEntries(Object.entries(stackExamples).map(([stack, example]) => [stack, [{ ...example, language: languageFor(example.file) }]]))
+    ...Object.fromEntries(Object.entries(stackExamples).map(([stack, example]) => [stack, [{ ...example, code: readFile(example.file), language: languageFor(example.file) }]]))
   };
 };
 

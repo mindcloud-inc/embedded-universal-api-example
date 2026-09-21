@@ -27,6 +27,8 @@ Open **http://localhost:4321**. The built-in **Demo Setup Guide** checks off eac
 
 ## Build this into your own app
 
-The app's **See Code Implementation** page shows the three pieces (customer handshake, frontend SDK, Universal API calls) with a diagram and the real source of every file.
+The app's **See Code Implementation** page shows the three pieces (customer handshake, frontend SDK, Universal API calls) with a diagram, syntax-highlighted source, and a stack picker.
+
+Prefer to browse? The same examples live in **[examples/](./examples)** — Node.js, Python, Go, Ruby, PHP and curl for the backend steps; React, Vue and plain JavaScript for the frontend step. The code page reads those exact files, so they never drift.
 
 For the complete reference — API contracts, error codes, and how to adapt the patterns to your stack — point your AI coding tool at **[LLM.md](./LLM.md)**.

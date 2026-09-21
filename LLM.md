@@ -59,7 +59,8 @@ Vendor backend (the MindCloud API key lives ONLY here)
 | `app/InboxClient.jsx` | The product using the connection: a live channel picker (`listChannels`) plus "Send to Slack" per conversation, with a "see how this worked" panel |
 | `app/integrations/IntegrationsClient.jsx` | Customer-facing integrations cards: Connect / Manage / Add another account — no internal ids shown |
 | `app/setup/SetupClient.jsx` | Live-checked setup guide teaching the MindCloud-side configuration |
-| `app/code/page.jsx` | "See Code Implementation": the three pieces, a sequence diagram, and these files' real source read off disk |
+| `app/code/page.jsx` | "See Code Implementation": the three pieces, a sequence diagram, and real source read off disk |
+| `examples/` | The same three steps per stack (Node, Python, Go, Ruby, PHP, curl, React, Vue, plain JS) as real files the code page renders |
 | `app/layout.jsx`, `app/globals.css` | The mock SaaS shell |
 
 Two SDK behaviors this code depends on: `sdk.getIntegrations()` with **no arguments returns the SDK's cached list** — pass `{ includeWorkflows: true }` (any options object) to force a refetch; and `sdk.install/modify` accept an **`onClose` callback** that fires when the dialog closes by any path (Finish, X, backdrop) — the reliable "refetch state now" hook.
