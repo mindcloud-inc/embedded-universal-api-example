@@ -71,6 +71,49 @@ code {
   color: #fff;
 }
 
+.sidebar nav a.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+/* ---- channel picker ---- */
+
+.channel-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: #fff;
+  border: 1px solid #e3e7ec;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.channel-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.channel-bar select {
+  font: inherit;
+  font-weight: 400;
+  border: 1px solid #d6dce3;
+  border-radius: 7px;
+  padding: 6px 9px;
+  min-width: 180px;
+  background: #fff;
+}
+
+.channel-bar-hint {
+  font-size: 12px;
+  color: #8a94a3;
+  text-align: right;
+}
+
 .sidebar-footer {
   margin-top: auto;
   font-size: 11px;

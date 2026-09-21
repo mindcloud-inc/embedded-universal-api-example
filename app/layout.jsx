@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import AppNav from './AppNav.jsx';
 import './globals.css';
 
 export const metadata = {
@@ -15,11 +15,7 @@ export default function RootLayout({ children }) {
             <div className="brand">
               <span className="brand-dot" /> Beacon
             </div>
-            <nav>
-              <Link href="/">Inbox</Link>
-              <Link href="/integrations">Integrations</Link>
-              <Link href="/setup">Setup guide</Link>
-            </nav>
+            <AppNav />
             <div className="sidebar-footer">Powered by MindCloud</div>
           </aside>
           <main className="main">{children}</main>

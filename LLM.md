@@ -8,7 +8,7 @@ You are looking at a complete, working reference implementation of MindCloud's e
 
 1. **An in-app integrations page** — the SaaS vendor's customers ("end users") connect their own accounts (Slack here, any app in the MindCloud catalog generally) through MindCloud's embedded SDK, without leaving the vendor's app. Per-installation options (which Slack channel to post to) are collected by the same dialog via the integration's metadata definitions.
 2. **Programmatic use of those connections** — the vendor's backend runs actions against the connected app through the Universal API, one REST shape for every app, addressed by `installationId`. Provider tokens are stored and refreshed by MindCloud and never touch the vendor's code.
-3. **A guided setup** — `/setup` renders live-checked steps (API key → create the connect-only Slack integration → add the `slackChannel` metadata definition → connect → send), so the app itself teaches the MindCloud-side configuration.
+3. **A guided setup** — `/setup` walks the whole path (create a MindCloud org → have Embedded enabled for it → create an API key and connect this app → turn on API access in Embedded → create the Slack integration → connect Slack). Dashboard-side steps show a step number; the ones the app can verify show a live checkmark. Until the verifiable ones pass, the nav shows only the setup guide; the product pages unlock when setup completes.
 
 ## Core concepts
 
@@ -47,10 +47,12 @@ Vendor backend (the MindCloud API key lives ONLY here)
 | `lib/mindcloud.js` | Server-side MindCloud API client — the only place the API key is used |
 | `lib/demoUserStore.js` | Stand-in for the vendor's database: maps app user id → MindCloud end-user id (create once, reuse forever) |
 | `lib/useMindCloud.js` | Client hook: token from our backend → SDK script → `setToken` → integrations; `openConnect`/`openManage` open the MindCloud dialog with `onClose: refresh` |
-| `lib/slackDemo.js` | The demo's addressing constants: app `slack`, action `sendChannelMessage`, metadata key `slackChannel` |
+| `lib/slackDemo.js` | The demo's addressing constants: app `slack`, actions `listChannels` (read) and `sendChannelMessage` (create) |
+| `app/AppNav.jsx` | Gates the nav on setup completeness |
 | `lib/getSlackContext.js` | Derives the setup state (integration exists? connected? channel set?) from the SDK data |
 | `app/api/embedded-token/route.js` | Backend endpoint the browser calls to get an end-user token |
-| `app/api/send-to-slack/route.js` | The payoff: list the installation's connections → resolve the channel name via the Universal lookup endpoint → run `sendChannelMessage` with `installationId` |
+| `app/api/slack-channels/route.js` | Universal API read: runs `listChannels` with `installationId` to populate the channel picker |
+| `app/api/send-to-slack/route.js` | Universal API create: runs `sendChannelMessage` with `installationId` and the picked channel id |
 | `app/api/run-action/route.js` | Generic backend endpoint that runs any Universal API action with an installation's connection |
 | `app/InboxClient.jsx` | The product using the connection: "Send to Slack" per conversation, with state-aware prompts and a "see how this worked" panel |
 | `app/integrations/IntegrationsClient.jsx` | Customer-facing integrations cards: Connect / Manage / Add another account — no internal ids shown |

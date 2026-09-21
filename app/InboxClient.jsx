@@ -1,9 +1,9 @@
 'use client';
 
-// The mock product actually USING the customer's connection: every conversation
-// can be sent to the customer's Slack channel through MindCloud. The button
-// walks the user to whatever setup step is still missing.
-import { useState } from 'react';
+// The product actually using the customer's connection, in two Universal API
+// calls: the channel picker reads their Slack channel list, and Send posts to
+// the channel they chose.
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useMindCloud } from '../lib/useMindCloud.js';
 import { getSlackContext } from '../lib/getSlackContext.js';
@@ -16,41 +16,48 @@ const CONVERSATIONS = [
 ];
 
 export default function InboxClient() {
-  const { integrations, error, openConnect, openManage } = useMindCloud();
-  const slack = getSlackContext(integrations);
+  const { integrations, error } = useMindCloud();
+  const { installation, isSetupComplete } = getSlackContext(integrations);
+
+  const [channels, setChannels] = useState(null);
+  const [channelsError, setChannelsError] = useState(null);
+  const [channelId, setChannelId] = useState('');
   const [sendState, setSendState] = useState({});
-  const [banner, setBanner] = useState(null);
+
+  const installationId = installation?.id;
+
+  const loadChannels = useCallback(async () => {
+    if (!installationId) {
+      return;
+    }
+
+    setChannelsError(null);
+
+    try {
+      const response = await fetch('/api/slack-channels', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ installationId })
+      });
+      const body = await response.json();
+
+      if (!body.success) {
+        setChannelsError(body.message);
+        return;
+      }
+
+      setChannels(body.channels);
+      setChannelId((current) => current || body.channels[0]?.id || '');
+    } catch (loadError) {
+      setChannelsError(loadError.message);
+    }
+  }, [installationId]);
+
+  useEffect(() => {
+    loadChannels();
+  }, [loadChannels]);
 
   const handleSend = async (conversation) => {
-    // Each missing piece routes the user to the right fix instead of failing.
-    if (!slack.integration) {
-      setBanner({
-        text: 'This demo needs a Slack integration in your MindCloud account first.',
-        actionLabel: 'Open the setup guide',
-        href: '/setup'
-      });
-      return;
-    }
-
-    if (!slack.installation) {
-      setBanner({
-        text: 'Connect your Slack account first — it takes about 20 seconds.',
-        actionLabel: 'Connect Slack',
-        onClick: () => openConnect(slack.integration.id)
-      });
-      return;
-    }
-
-    if (!slack.channelName) {
-      setBanner({
-        text: 'Pick which Slack channel this app should post to.',
-        actionLabel: 'Set your channel',
-        onClick: () => openManage(slack.installation.id)
-      });
-      return;
-    }
-
-    setBanner(null);
     setSendState((prev) => ({ ...prev, [conversation.subject]: { status: 'sending' } }));
 
     try {
@@ -58,9 +65,8 @@ export default function InboxClient() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          installationId: slack.installation.id,
-          appId: slack.slackApp?.id,
-          channelName: slack.channelName,
+          installationId,
+          channelId,
           text: `New conversation from ${conversation.from}: "${conversation.subject}"`
         })
       });
@@ -68,37 +74,56 @@ export default function InboxClient() {
 
       setSendState((prev) => ({
         ...prev,
-        [conversation.subject]: body.success ? { status: 'sent', channel: body.channel, request: body.request, response: body.response } : { status: 'error', message: body.message }
+        [conversation.subject]: body.success ? { status: 'sent', request: body.request } : { status: 'error', message: body.message }
       }));
     } catch (sendError) {
       setSendState((prev) => ({ ...prev, [conversation.subject]: { status: 'error', message: sendError.message } }));
     }
   };
 
+  if (error) {
+    return (
+      <div className="banner banner-error">
+        <span>{error}</span>
+        <Link className="btn" href="/setup">
+          Open the setup guide
+        </Link>
+      </div>
+    );
+  }
+
+  if (!isSetupComplete) {
+    return (
+      <div className="notice">
+        <p>
+          <strong>Finish setup first.</strong> Connect a Slack account and this inbox can post conversations straight into it.
+        </p>
+        <Link className="btn btn-primary" href="/setup">
+          Open the setup guide
+        </Link>
+      </div>
+    );
+  }
+
+  const selectedChannel = (channels || []).find((channel) => channel.id === channelId);
+
   return (
     <>
-      {error && (
-        <div className="banner banner-error">
-          <span>{error}</span>
-          <Link className="btn" href="/setup">
-            Open the setup guide
-          </Link>
+      <div className="channel-bar">
+        <div className="channel-bar-left">
+          <label htmlFor="slack-channel">Post to</label>
+          <select id="slack-channel" value={channelId} onChange={(event) => setChannelId(event.target.value)} disabled={!channels || channels.length === 0}>
+            {!channels && <option value="">Loading channels…</option>}
+            {channels?.length === 0 && <option value="">No channels found</option>}
+            {channels?.map((channel) => (
+              <option key={channel.id} value={channel.id}>
+                #{channel.name}
+              </option>
+            ))}
+          </select>
         </div>
-      )}
-      {banner && (
-        <div className="banner">
-          <span>{banner.text}</span>
-          {banner.href ? (
-            <Link className="btn btn-primary" href={banner.href}>
-              {banner.actionLabel}
-            </Link>
-          ) : (
-            <button className="btn btn-primary" onClick={banner.onClick}>
-              {banner.actionLabel}
-            </button>
-          )}
-        </div>
-      )}
+        <span className="channel-bar-hint">{channelsError || 'Loaded live from your Slack with one Universal API call.'}</span>
+      </div>
 
       <div className="inbox">
         {CONVERSATIONS.map((conversation) => {
@@ -114,7 +139,7 @@ export default function InboxClient() {
                 <div className="inbox-meta">
                   <span className="chip">{conversation.tag}</span>
                   <span className="inbox-time">{conversation.time}</span>
-                  <button className="btn" onClick={() => handleSend(conversation)} disabled={state?.status === 'sending'}>
+                  <button className="btn" onClick={() => handleSend(conversation)} disabled={!channelId || state?.status === 'sending'}>
                     {state?.status === 'sending' ? 'Sending…' : 'Send to Slack'}
                   </button>
                 </div>
@@ -122,7 +147,7 @@ export default function InboxClient() {
 
               {state?.status === 'sent' && (
                 <div className="inbox-result">
-                  <span className="chip chip-green">Posted to #{state.channel?.label}</span>
+                  <span className="chip chip-green">Posted to #{selectedChannel?.name}</span>
                   <details>
                     <summary>See how this worked</summary>
                     <p className="result-hint">Your backend sent this with its MindCloud API key — no Slack tokens involved:</p>

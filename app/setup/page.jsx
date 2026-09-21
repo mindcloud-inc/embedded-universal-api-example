@@ -7,7 +7,7 @@ export default function SetupPage() {
     <>
       <header className="page-header">
         <h1>Setup guide</h1>
-        <p>Five minutes from zero to posting in your own Slack. Steps 1–3 are one-time setup in your MindCloud account; 4–5 are what every customer does in this app.</p>
+        <p>Zero to posting in your own Slack. Numbered steps happen in the MindCloud dashboard; the rest this app checks for you as you go.</p>
       </header>
       <SetupClient />
     </>
