@@ -12,10 +12,12 @@ const FIELDS = [
     required: true
   },
   { key: 'DEMO_USER_EMAIL', label: 'Demo end-user email', fallback: 'demo@example.com' },
-  { key: 'DEMO_USER_NAME', label: 'Demo end-user name', fallback: 'Demo User' },
-  { key: 'MINDCLOUD_API_BASE_URL', label: 'MindCloud API base URL', fallback: 'https://connect.mindcloud.co' },
-  { key: 'NEXT_PUBLIC_MINDCLOUD_EMBEDDED_BASE_URL', label: 'MindCloud embedded SDK base URL', fallback: 'https://embedded.mindcloud.co' }
+  { key: 'DEMO_USER_NAME', label: 'Demo end-user name', fallback: 'Demo User' }
 ];
+
+// Never prompted — sensible defaults live in code. Preserved when a previous
+// .env.local set them by hand (see .env.example).
+const PASSTHROUGH_KEYS = ['MINDCLOUD_API_BASE_URL', 'NEXT_PUBLIC_MINDCLOUD_EMBEDDED_BASE_URL'];
 
 const readExistingEnv = () => {
   if (!existsSync(ENV_FILE)) {
@@ -35,6 +37,16 @@ const readExistingEnv = () => {
 
 const main = async () => {
   const readline = createInterface({ input: process.stdin, output: process.stdout });
+  // Resolves null when stdin ends (piped input, Ctrl-D) — a pending question
+  // never settles on its own then, and the process would exit silently. Asking
+  // after close throws, so later fields check the flag and use their fallbacks.
+  let isStdinClosed = false;
+  const stdinClosed = new Promise((resolve) =>
+    readline.once('close', () => {
+      isStdinClosed = true;
+      resolve(null);
+    })
+  );
   const existing = readExistingEnv();
   const values = {};
 
@@ -46,7 +58,18 @@ const main = async () => {
     let answer = '';
     do {
       const suffix = fallback ? ` [${fallback}]` : '';
-      answer = (await readline.question(`${field.label}${suffix}: `)).trim() || fallback;
+      const response = isStdinClosed ? null : await Promise.race([readline.question(`${field.label}${suffix}: `), stdinClosed]);
+
+      if (response === null) {
+        if (field.required && !fallback) {
+          console.error(`\n${field.key} is required — run the setup interactively.`);
+          process.exit(1);
+        }
+        answer = fallback;
+        break;
+      }
+
+      answer = response.trim() || fallback;
 
       if (field.required && !answer) {
         console.log('  This value is required.');
@@ -58,7 +81,16 @@ const main = async () => {
 
   readline.close();
 
-  const contents = FIELDS.map((field) => `${field.key}=${values[field.key]}`).join('\n') + '\n';
+  for (const key of PASSTHROUGH_KEYS) {
+    if (existing[key]) {
+      values[key] = existing[key];
+    }
+  }
+
+  const contents =
+    Object.entries(values)
+      .map(([key, value]) => `${key}=${value}`)
+      .join('\n') + '\n';
   writeFileSync(ENV_FILE, contents);
 
   console.log('\nWrote .env.local. Start the app with:\n\n  npm run dev\n\nThen open http://localhost:4321\n');
