@@ -1,6 +1,5 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import ArchitectureDiagram from './ArchitectureDiagram.jsx';
 import CodeExplorer from './CodeExplorer.jsx';
 
 export const metadata = { title: 'Code Implementation — Beacon' };
@@ -62,10 +61,6 @@ export default function CodePage() {
         <h1>Code Implementation</h1>
         <p>You just ran MindCloud Embedded end to end: a customer connected their own Slack, and this app used that connection through the Universal API. Here is every piece, so you can do the same in your codebase.</p>
       </header>
-
-      <div className="diagram-card">
-        <ArchitectureDiagram />
-      </div>
 
       <CodeExplorer sections={sections} />
 

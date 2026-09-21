@@ -515,7 +515,7 @@ code {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
   font-size: 13px;
   font-weight: 500;
 }
@@ -540,23 +540,43 @@ code {
 
 .code-section-header {
   display: flex;
-  gap: 14px;
-  align-items: flex-start;
+  gap: 12px;
+  align-items: center;
   width: 100%;
   text-align: left;
   background: none;
   border: none;
   font: inherit;
   cursor: pointer;
-  padding: 18px;
+  padding: 14px 18px;
+}
+
+.code-section-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.code-section-count {
+  margin-left: auto;
+  font-size: 12px;
+  color: #8a94a3;
+}
+
+.code-section-body {
+  padding: 0 18px 4px;
+  border-top: 1px solid #eef1f4;
+}
+
+.code-section-summary {
+  font-size: 13.5px;
+  color: #5a6674;
+  line-height: 1.55;
+  max-width: 660px;
+  margin: 14px 0 16px;
 }
 
 .code-section-header:hover {
   background: #fafbfc;
-}
-
-.code-section-heading {
-  flex: 1;
 }
 
 .code-section-chevron {
@@ -566,7 +586,6 @@ code {
   transition: transform 0.15s ease;
   transform: rotate(-90deg);
   flex-shrink: 0;
-  margin-top: 4px;
 }
 
 .code-section-chevron.open {
@@ -587,14 +606,6 @@ code {
   justify-content: center;
 }
 
-.code-section-header h2 {
-  font-size: 16px;
-  margin: 2px 0 6px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
 .code-section-where {
   font-size: 11px;
   font-weight: 500;
@@ -606,16 +617,8 @@ code {
   padding: 3px 9px;
 }
 
-.code-section-header p {
-  margin: 0;
-  font-size: 13.5px;
-  color: #5a6674;
-  line-height: 1.55;
-  max-width: 660px;
-}
-
 .code-file {
-  padding: 0 18px 18px;
+  padding: 0 0 16px;
 }
 
 .code-file-header {
