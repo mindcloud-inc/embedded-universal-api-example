@@ -7,7 +7,7 @@ export default function IntegrationsPage() {
     <>
       <header className="page-header">
         <h1>Integrations</h1>
-        <p>Connect the tools your team already uses. Connections are stored and refreshed by MindCloud — this app never touches a provider token.</p>
+        <p>Connect the tools your team already uses.</p>
       </header>
       <IntegrationsClient />
     </>

@@ -18,8 +18,9 @@ export default function RootLayout({ children }) {
             <nav>
               <Link href="/">Inbox</Link>
               <Link href="/integrations">Integrations</Link>
+              <Link href="/setup">Setup guide</Link>
             </nav>
-            <div className="sidebar-footer">Mock SaaS app · powered by MindCloud</div>
+            <div className="sidebar-footer">Powered by MindCloud</div>
           </aside>
           <main className="main">{children}</main>
         </div>

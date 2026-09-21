@@ -4,10 +4,11 @@ You are looking at a complete, working reference implementation of MindCloud's e
 
 ## What this app demonstrates
 
-**Beacon** is a mock SaaS app (a customer-messaging tool, Next.js App Router, port 4321). The mock parts are static; the real feature is:
+**Beacon** is a mock SaaS app (a customer-messaging tool, Next.js App Router, port 4321) built around one end-to-end story: the Inbox's **"Send to Slack"** button posts a conversation to the customer's own Slack channel. That demonstrates:
 
-1. **An in-app integrations page** — the SaaS vendor's customers ("end users") connect their own accounts (Slack, Gmail, any app in the MindCloud catalog) through MindCloud's embedded SDK, without leaving the vendor's app.
-2. **Programmatic use of those connections** — the vendor's backend runs actions against any connected app through the Universal API, one REST shape for every app, addressed by `installationId`. Provider tokens (OAuth tokens, API keys of the end user's accounts) are stored and refreshed by MindCloud and never touch the vendor's code.
+1. **An in-app integrations page** — the SaaS vendor's customers ("end users") connect their own accounts (Slack here, any app in the MindCloud catalog generally) through MindCloud's embedded SDK, without leaving the vendor's app. Per-installation options (which Slack channel to post to) are collected by the same dialog via the integration's metadata definitions.
+2. **Programmatic use of those connections** — the vendor's backend runs actions against the connected app through the Universal API, one REST shape for every app, addressed by `installationId`. Provider tokens are stored and refreshed by MindCloud and never touch the vendor's code.
+3. **A guided setup** — `/setup` renders live-checked steps (API key → create the connect-only Slack integration → add the `slackChannel` metadata definition → connect → send), so the app itself teaches the MindCloud-side configuration.
 
 ## Core concepts
 
@@ -45,11 +46,18 @@ Vendor backend (the MindCloud API key lives ONLY here)
 | `scripts/setup.mjs` | Interactive `.env.local` writer (zero dependencies, node readline) |
 | `lib/mindcloud.js` | Server-side MindCloud API client — the only place the API key is used |
 | `lib/demoUserStore.js` | Stand-in for the vendor's database: maps app user id → MindCloud end-user id (create once, reuse forever) |
+| `lib/useMindCloud.js` | Client hook: token from our backend → SDK script → `setToken` → integrations; `openConnect`/`openManage` open the MindCloud dialog with `onClose: refresh` |
+| `lib/slackDemo.js` | The demo's addressing constants: app `slack`, action `sendChannelMessage`, metadata key `slackChannel` |
+| `lib/getSlackContext.js` | Derives the setup state (integration exists? connected? channel set?) from the SDK data |
 | `app/api/embedded-token/route.js` | Backend endpoint the browser calls to get an end-user token |
-| `app/api/run-action/route.js` | Backend endpoint that runs a Universal API action with an installation's connection |
-| `app/integrations/IntegrationsClient.jsx` | Loads the SDK script, renders integration cards, opens the connect modal, refreshes on `onAuthenticationComplete` |
-| `app/integrations/ApiPlayground.jsx` | In-page tester: run any action against a connected installation, shows the equivalent curl |
-| `app/page.jsx`, `app/layout.jsx`, `app/globals.css` | The mock SaaS shell — static, no MindCloud code |
+| `app/api/send-to-slack/route.js` | The payoff: list the installation's connections → resolve the channel name via the Universal lookup endpoint → run `sendChannelMessage` with `installationId` |
+| `app/api/run-action/route.js` | Generic backend endpoint that runs any Universal API action with an installation's connection |
+| `app/InboxClient.jsx` | The product using the connection: "Send to Slack" per conversation, with state-aware prompts and a "see how this worked" panel |
+| `app/integrations/IntegrationsClient.jsx` | Customer-facing integrations cards: Connect / Manage / Add another account — no internal ids shown |
+| `app/setup/SetupClient.jsx` | Live-checked setup guide teaching the MindCloud-side configuration |
+| `app/layout.jsx`, `app/globals.css` | The mock SaaS shell |
+
+Two SDK behaviors this code depends on: `sdk.getIntegrations()` with **no arguments returns the SDK's cached list** — pass `{ includeWorkflows: true }` (any options object) to force a refetch; and `sdk.install/modify` accept an **`onClose` callback** that fires when the dialog closes by any path (Finish, X, backdrop) — the reliable "refetch state now" hook.
 
 ## API contracts used by this app
 

@@ -1,91 +1,53 @@
 'use client';
 
-// The whole embedded flow, client side:
-//   1. ask OUR backend for an end-user token   (POST /api/embedded-token)
-//   2. load the MindCloud embedded SDK          (one script tag)
-//   3. sdk.setToken(token) + sdk.getIntegrations()
-//   4. render cards; Connect/Manage open the MindCloud modal
-// The SDK owns the connect UI (credentials, OAuth popups, options), so this
-// file is just data fetching and rendering.
-import { useCallback, useEffect, useRef, useState } from 'react';
-import ApiPlayground from './ApiPlayground.jsx';
+// A customer-facing integrations page: cards with Connect / Manage. All the
+// heavy lifting (credential forms, OAuth popups, the Options tab) is the
+// MindCloud modal — this file only renders data from sdk.getIntegrations().
+import Link from 'next/link';
+import { useMindCloud } from '../../lib/useMindCloud.js';
 
-const EMBEDDED_BASE_URL = process.env.NEXT_PUBLIC_MINDCLOUD_EMBEDDED_BASE_URL || 'https://embedded.mindcloud.co';
+const getStatus = (integration) => {
+  const installations = integration.installations || [];
+  const connected = installations.filter((installation) => installation.isInstalled);
 
-const loadSdkScript = () => {
-  if (window.MindCloud) {
-    return Promise.resolve();
+  if (connected.length > 0) {
+    return { label: 'Connected', className: 'chip-green', installation: connected[0] };
   }
 
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = `${EMBEDDED_BASE_URL}/assets/embedded/sdk.1.0.0.min.js`;
-    script.async = true;
-    script.onload = () => (window.MindCloud ? resolve() : reject(new Error('SDK script loaded but window.MindCloud is missing')));
-    script.onerror = () => reject(new Error('Failed to load the MindCloud embedded SDK script'));
-    document.head.appendChild(script);
-  });
+  if (installations.length > 0) {
+    return { label: 'Setup incomplete', className: 'chip-amber', installation: installations[0] };
+  }
+
+  return { label: null, installation: null };
 };
 
 export default function IntegrationsClient() {
-  const sdkRef = useRef(null);
-  const [integrations, setIntegrations] = useState(null);
-  const [error, setError] = useState(null);
-
-  const refresh = useCallback(async () => {
-    const list = await sdkRef.current.getIntegrations();
-    setIntegrations(list || []);
-  }, []);
-
-  useEffect(() => {
-    const init = async () => {
-      try {
-        const tokenResponse = await fetch('/api/embedded-token', { method: 'POST' });
-        const tokenBody = await tokenResponse.json();
-        if (!tokenBody.token) {
-          throw new Error(tokenBody.message || 'Could not get an end-user token.');
-        }
-
-        await loadSdkScript();
-        sdkRef.current = window.MindCloud({ baseUrl: EMBEDDED_BASE_URL });
-        sdkRef.current.setToken(tokenBody.token);
-        await refresh();
-      } catch (initError) {
-        setError(initError.message);
-      }
-    };
-
-    init();
-  }, [refresh]);
-
-  const handleConnect = (integration) => {
-    sdkRef.current.install({ integrationId: integration.id, onAuthenticationComplete: refresh });
-  };
-
-  const handleManage = (installation) => {
-    sdkRef.current.modify({ installationId: installation.id, onAuthenticationComplete: refresh });
-  };
+  const { integrations, error, isLoading, openConnect, openManage } = useMindCloud();
 
   if (error) {
     return (
-      <div className="notice notice-error">
-        <strong>Setup needed:</strong> {error}
+      <div className="banner banner-error">
+        <span>{error}</span>
+        <Link className="btn" href="/setup">
+          Open the setup guide
+        </Link>
       </div>
     );
   }
 
-  if (!integrations) {
+  if (isLoading) {
     return <div className="notice">Loading integrations…</div>;
   }
 
   if (integrations.length === 0) {
     return (
       <div className="notice">
-        No integrations are published for this MindCloud account yet. Create one (Connect-Only works great here) at{' '}
-        <a href="https://app.mindcloud.co/embedded" target="_blank" rel="noopener noreferrer">
-          app.mindcloud.co/embedded
-        </a>
-        , then refresh this page.
+        <p>
+          <strong>No integrations yet.</strong> Integrations are defined once in your MindCloud account, then every one of your customers can connect to them here.
+        </p>
+        <Link className="btn btn-primary" href="/setup">
+          Open the setup guide
+        </Link>
       </div>
     );
   }
@@ -93,38 +55,34 @@ export default function IntegrationsClient() {
   return (
     <div className="card-grid">
       {integrations.map((integration) => {
-        const installations = integration.installations || [];
+        const status = getStatus(integration);
 
         return (
           <div key={integration.id} className="card">
             <div className="card-header">
               {integration.app?.iconUrl && <img className="app-icon" src={integration.app.iconUrl} alt="" />}
-              <div>
+              <div className="card-title-group">
                 <div className="card-title">{integration.name}</div>
-                {integration.description && <div className="card-description">{integration.description}</div>}
+                {status.label && <span className={`chip ${status.className}`}>{status.label}</span>}
               </div>
             </div>
-
-            {installations.length > 0 && (
-              <div className="installations">
-                {installations.map((installation) => (
-                  <div key={installation.id} className="installation">
-                    <div className="installation-row">
-                      <span className={`chip ${installation.isInstalled ? 'chip-green' : ''}`}>{installation.isInstalled ? 'Connected' : 'Incomplete'}</span>
-                      <code className="installation-id">{installation.id}</code>
-                      <button className="btn" onClick={() => handleManage(installation)}>
-                        Manage
-                      </button>
-                    </div>
-                    {installation.isInstalled && <ApiPlayground integration={integration} installation={installation} />}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <button className="btn btn-primary" onClick={() => handleConnect(integration)}>
-              {installations.length > 0 ? 'Add another connection' : 'Connect'}
-            </button>
+            <p className="card-description">{integration.description || `Connect your ${integration.app?.name || ''} account so this app can work with it on your behalf.`.trim()}</p>
+            <div className="card-actions">
+              {status.installation ? (
+                <>
+                  <button className="btn" onClick={() => openManage(status.installation.id)}>
+                    Manage
+                  </button>
+                  <button className="btn btn-ghost" onClick={() => openConnect(integration.id)}>
+                    Add another account
+                  </button>
+                </>
+              ) : (
+                <button className="btn btn-primary" onClick={() => openConnect(integration.id)}>
+                  Connect
+                </button>
+              )}
+            </div>
           </div>
         );
       })}
