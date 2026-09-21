@@ -2,7 +2,7 @@
 // resolve their MindCloud end user (create on first sight), and mint them a
 // short-lived embedded token. The browser never sees your API key.
 import { getEndUserToken } from '../../../lib/mindcloud.js';
-import { getOrCreateEndUserId } from '../../../lib/demoUserStore.js';
+import { getOrCreateEndUserId, recreateEndUserId } from '../../../lib/demoUserStore.js';
 
 export async function POST() {
   // A real app takes this from its session. The demo has exactly one user.
@@ -17,7 +17,18 @@ export async function POST() {
     return Response.json({ success: false, message: resolved.error }, { status: resolved.status || 500 });
   }
 
-  const tokenResponse = await getEndUserToken(resolved.endUserId);
+  let tokenResponse = await getEndUserToken(resolved.endUserId);
+
+  // A stored end user from a different organization (i.e. the API key changed)
+  // can never mint a token. Recreate it under the current key and retry once.
+  if (!tokenResponse.body?.token && [403, 404].includes(tokenResponse.status)) {
+    const recreated = await recreateEndUserId(appUser);
+    if (recreated.error) {
+      return Response.json({ success: false, message: recreated.error }, { status: recreated.status || 500 });
+    }
+    tokenResponse = await getEndUserToken(recreated.endUserId);
+  }
+
   const token = tokenResponse.body?.token;
 
   if (!token) {

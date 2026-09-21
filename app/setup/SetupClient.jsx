@@ -75,7 +75,11 @@ export default function SetupClient() {
       title: 'Create a Slack integration',
       body: (
         <p>
-          On <strong>Embedded → API → Integrations</strong>, click <strong>Create Integration</strong> and pick <strong>Slack</strong>. That defines what your customers can connect — you do this once, in your account.
+          On{' '}
+          <a href="https://app.mindcloud.co/embedded/api" target="_blank" rel="noopener noreferrer">
+            Embedded → API → Integrations
+          </a>
+          , click <strong>Create Integration</strong> and pick <strong>Slack</strong>. That defines what your customers can connect — you do this once, in your account.
         </p>
       )
     },
