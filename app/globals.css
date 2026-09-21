@@ -486,3 +486,21 @@ code {
 .step-row .btn {
   flex-shrink: 0;
 }
+
+.key-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.key-form input {
+  flex: 1;
+  font: inherit;
+  border: 1px solid #d6dce3;
+  border-radius: 7px;
+  padding: 7px 10px;
+}
+
+.key-form .btn {
+  flex-shrink: 0;
+}

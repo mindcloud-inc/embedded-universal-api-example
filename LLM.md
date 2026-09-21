@@ -6,9 +6,9 @@ You are looking at a complete, working reference implementation of MindCloud's e
 
 **Beacon** is a mock SaaS app (a customer-messaging tool, Next.js App Router, port 4321) built around one end-to-end story: the Inbox's **"Send to Slack"** button posts a conversation to the customer's own Slack channel. That demonstrates:
 
-1. **An in-app integrations page** — the SaaS vendor's customers ("end users") connect their own accounts (Slack here, any app in the MindCloud catalog generally) through MindCloud's embedded SDK, without leaving the vendor's app. Per-installation options (which Slack channel to post to) are collected by the same dialog via the integration's metadata definitions.
+1. **An in-app integrations page** — the SaaS vendor's customers ("end users") connect their own accounts (Slack here, any app in the MindCloud catalog generally) through MindCloud's embedded SDK, without leaving the vendor's app.
 2. **Programmatic use of those connections** — the vendor's backend runs actions against the connected app through the Universal API, one REST shape for every app, addressed by `installationId`. Provider tokens are stored and refreshed by MindCloud and never touch the vendor's code.
-3. **A guided setup** — `/setup` walks the whole path (create a MindCloud org → have Embedded enabled for it → create an API key and connect this app → turn on API access in Embedded → create the Slack integration → connect Slack). Dashboard-side steps show a step number; the ones the app can verify show a live checkmark. Until the verifiable ones pass, the nav shows only the setup guide; the product pages unlock when setup completes.
+3. **A guided setup** — the app starts with zero configuration; `/setup` takes the API key in-page (validated, then written to `.env.local` server-side) and walks the whole path (MindCloud org → Embedded enabled → API key → turn on API access in Embedded → create the Slack integration → connect Slack). Every step the key can verify (org, `settings.enableEmbedded`, integration, installation) self-checks; only the nav toggle, which is a dashboard user preference, shows a plain step number. Until the verifiable ones pass, the nav shows only the setup guide; the product pages unlock when setup completes.
 
 ## Core concepts
 
@@ -43,18 +43,20 @@ Vendor backend (the MindCloud API key lives ONLY here)
 
 | File | What it shows |
 | --- | --- |
-| `scripts/setup.mjs` | Interactive `.env.local` writer (zero dependencies, node readline) |
+| `lib/apiKey.js` | Resolves the API key from env or `.env.local`; the setup page's key form persists it here |
+| `app/api/configure/route.js` | Validates a pasted API key against MindCloud, then saves it server-side |
+| `app/api/mindcloud-status/route.js` | Reads the org + `settings.enableEmbedded` so the setup guide can self-check |
 | `lib/mindcloud.js` | Server-side MindCloud API client — the only place the API key is used |
 | `lib/demoUserStore.js` | Stand-in for the vendor's database: maps app user id → MindCloud end-user id (create once, reuse forever) |
 | `lib/useMindCloud.js` | Client hook: token from our backend → SDK script → `setToken` → integrations; `openConnect`/`openManage` open the MindCloud dialog with `onClose: refresh` |
 | `lib/slackDemo.js` | The demo's addressing constants: app `slack`, actions `listChannels` (read) and `sendChannelMessage` (create) |
 | `app/AppNav.jsx` | Gates the nav on setup completeness |
-| `lib/getSlackContext.js` | Derives the setup state (integration exists? connected? channel set?) from the SDK data |
+| `lib/getSlackContext.js` | Derives the setup state (integration exists? connected?) from the SDK data |
 | `app/api/embedded-token/route.js` | Backend endpoint the browser calls to get an end-user token |
 | `app/api/slack-channels/route.js` | Universal API read: runs `listChannels` with `installationId` to populate the channel picker |
 | `app/api/send-to-slack/route.js` | Universal API create: runs `sendChannelMessage` with `installationId` and the picked channel id |
 | `app/api/run-action/route.js` | Generic backend endpoint that runs any Universal API action with an installation's connection |
-| `app/InboxClient.jsx` | The product using the connection: "Send to Slack" per conversation, with state-aware prompts and a "see how this worked" panel |
+| `app/InboxClient.jsx` | The product using the connection: a live channel picker (`listChannels`) plus "Send to Slack" per conversation, with a "see how this worked" panel |
 | `app/integrations/IntegrationsClient.jsx` | Customer-facing integrations cards: Connect / Manage / Add another account — no internal ids shown |
 | `app/setup/SetupClient.jsx` | Live-checked setup guide teaching the MindCloud-side configuration |
 | `app/layout.jsx`, `app/globals.css` | The mock SaaS shell |
@@ -130,8 +132,7 @@ Per-app human docs with the same slugs and schemas: https://mindcloud.co/docs/un
 
 | Variable | Required | Notes |
 | --- | --- | --- |
-| `MINDCLOUD_API_KEY` | yes | Full Access key. Server-side only. |
-| `DEMO_USER_EMAIL` / `DEMO_USER_NAME` | no | Identity of the demo end user this app creates. |
+| `MINDCLOUD_API_KEY` | no | Full Access key. Written by the setup page if you don't set it yourself. Server-side only. |
 | `MINDCLOUD_API_BASE_URL` | no | Defaults to `https://connect.mindcloud.co`. |
 | `NEXT_PUBLIC_MINDCLOUD_EMBEDDED_BASE_URL` | no | Defaults to `https://embedded.mindcloud.co`. |
 

@@ -5,6 +5,7 @@
 // show a step number; the ones this app can verify show a live checkmark.
 // When the verifiable ones are green, the rest of the app unlocks.
 import Link from 'next/link';
+import { useCallback, useEffect, useState } from 'react';
 import { useMindCloud } from '../../lib/useMindCloud.js';
 import { getSlackContext } from '../../lib/getSlackContext.js';
 
@@ -20,11 +21,67 @@ export default function SetupClient() {
   const { integrations, error, isLoading, refresh, openConnect } = useMindCloud();
   const slack = getSlackContext(integrations);
 
+  // Everything the API key can verify about the MindCloud side of setup.
+  const [status, setStatus] = useState(null);
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [isSavingKey, setIsSavingKey] = useState(false);
+  const [keyError, setKeyError] = useState(null);
+
+  const loadStatus = useCallback(async () => {
+    try {
+      const response = await fetch('/api/mindcloud-status');
+      setStatus(await response.json());
+    } catch (statusError) {
+      setStatus({ success: false, message: statusError.message });
+    }
+  }, []);
+
+  useEffect(() => {
+    loadStatus();
+  }, [loadStatus]);
+
+  const handleRecheck = () => {
+    loadStatus();
+    refresh();
+  };
+
+  const handleSaveKey = async (event) => {
+    event.preventDefault();
+    setIsSavingKey(true);
+    setKeyError(null);
+
+    try {
+      const response = await fetch('/api/configure', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey: apiKeyInput.trim() })
+      });
+      const body = await response.json();
+
+      if (!body.success) {
+        setKeyError(body.message);
+        return;
+      }
+
+      setApiKeyInput('');
+      await loadStatus();
+      refresh();
+    } catch (saveError) {
+      setKeyError(saveError.message);
+    } finally {
+      setIsSavingKey(false);
+    }
+  };
+
   const steps = [
     {
-      manual: true,
+      done: !!status?.company,
       title: 'Create a MindCloud account and organization',
-      body: (
+      body: status?.company ? (
+        <p>
+          Connected to <strong>{status.company.name}</strong>. Your organization is the account your customers' connections live under.
+        </p>
+      ) : (
         <p>
           Sign up at{' '}
           <a href="https://app.mindcloud.co/signup" target="_blank" rel="noopener noreferrer">
@@ -35,26 +92,32 @@ export default function SetupClient() {
       )
     },
     {
-      manual: true,
+      done: status?.enableEmbedded === true,
       title: 'Ask your MindCloud representative to enable Embedded',
-      body: <p>Embedded is enabled per organization by MindCloud. Your sales representative can turn it on for your account.</p>
+      body: status?.enableEmbedded ? <p>Embedded is enabled for this organization.</p> : <p>Embedded is enabled per organization by MindCloud. Your sales representative can turn it on for your account.</p>
     },
     {
-      done: !error && !isLoading,
-      title: 'Create an API key and connect this app',
-      body: error ? (
+      done: !!status?.company,
+      title: 'Create an API key and paste it here',
+      body: status?.company ? (
+        <p>Your API key works — this app created its demo end user and can mint end-user tokens.</p>
+      ) : (
         <>
-          <p className="step-error">{error}</p>
           <p>
             Create a <strong>Full Access</strong> key at{' '}
             <a href="https://app.mindcloud.co/user/api-keys" target="_blank" rel="noopener noreferrer">
               Settings → API Keys
             </a>
-            , then run <code>npm run setup</code> and restart <code>npm run dev</code>.
+            , then paste it here. It is stored server-side in <code>.env.local</code> and never sent to the browser.
           </p>
+          <form className="key-form" onSubmit={handleSaveKey}>
+            <input type="password" value={apiKeyInput} onChange={(event) => setApiKeyInput(event.target.value)} placeholder="Paste your MindCloud API key" autoComplete="off" />
+            <button className="btn btn-primary" type="submit" disabled={!apiKeyInput.trim() || isSavingKey}>
+              {isSavingKey ? 'Checking…' : 'Save key'}
+            </button>
+          </form>
+          {keyError && <p className="step-error">{keyError}</p>}
         </>
-      ) : (
-        <p>Your API key works — this app created its demo end user and can mint end-user tokens.</p>
       )
     },
     {
@@ -119,7 +182,7 @@ export default function SetupClient() {
           </Link>
         </div>
       ) : (
-        <button className="btn btn-ghost" onClick={refresh}>
+        <button className="btn btn-ghost" onClick={handleRecheck}>
           Re-check status
         </button>
       )}

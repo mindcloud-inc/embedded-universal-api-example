@@ -6,11 +6,7 @@ import { getOrCreateEndUserId, recreateEndUserId } from '../../../lib/demoUserSt
 
 export async function POST() {
   // A real app takes this from its session. The demo has exactly one user.
-  const appUser = {
-    appUserId: 'demo-user-1',
-    name: process.env.DEMO_USER_NAME || 'Demo User',
-    email: process.env.DEMO_USER_EMAIL || 'demo@example.com'
-  };
+  const appUser = { appUserId: 'demo-user-1', name: 'Demo User', email: 'demo@example.com' };
 
   const resolved = await getOrCreateEndUserId(appUser);
   if (resolved.error) {

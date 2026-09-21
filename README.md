@@ -6,13 +6,12 @@ A tiny fake SaaS app ("Beacon") that shows the full MindCloud embedded story wit
 
 ```bash
 npm install
-npm run setup    # paste your MindCloud API key
 npm run dev
 ```
 
-Open **http://localhost:4321** — the app's built-in **Setup guide** walks you through the rest (create the Slack integration in MindCloud, connect it, hit "Send to Slack" in the Inbox). Five minutes, live checkmarks.
+Open **http://localhost:4321**. The built-in **Demo Setup Guide** takes it from there: paste a MindCloud API key right in the page, then follow the live-checked steps until the Inbox unlocks.
 
-Need an API key? [app.mindcloud.co](https://app.mindcloud.co) → Settings → API Keys → **Full Access**.
+Need a key? [app.mindcloud.co](https://app.mindcloud.co) → Settings → API Keys → **Full Access**. It's stored server-side in `.env.local` and never sent to the browser.
 
 ## Build this into your own app
 

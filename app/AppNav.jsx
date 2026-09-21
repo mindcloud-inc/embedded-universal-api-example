@@ -16,9 +16,9 @@ export default function AppNav() {
     ? [
         { href: '/', label: 'Inbox' },
         { href: '/integrations', label: 'Integrations' },
-        { href: '/setup', label: 'Setup guide' }
+        { href: '/setup', label: 'Demo Setup Guide' }
       ]
-    : [{ href: '/setup', label: 'Setup guide' }];
+    : [{ href: '/setup', label: 'Demo Setup Guide' }];
 
   return (
     <nav>
