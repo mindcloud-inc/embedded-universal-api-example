@@ -52,13 +52,14 @@ Vendor backend (the MindCloud API key lives ONLY here)
 | `lib/slackDemo.js` | The demo's addressing constants: app `slack`, actions `listChannels` (read) and `sendChannelMessage` (create) |
 | `app/AppNav.jsx` | Gates the nav on setup completeness |
 | `lib/getSlackContext.js` | Derives the setup state (integration exists? connected?) from the SDK data |
+| `lib/getMindCloudStatus.js` | Wraps `GET /v2/me` — the org and its enabled capabilities |
 | `app/api/embedded-token/route.js` | Backend endpoint the browser calls to get an end-user token |
 | `app/api/slack-channels/route.js` | Universal API read: runs `listChannels` with `installationId` to populate the channel picker |
 | `app/api/send-to-slack/route.js` | Universal API create: runs `sendChannelMessage` with `installationId` and the picked channel id |
-| `app/api/run-action/route.js` | Generic backend endpoint that runs any Universal API action with an installation's connection |
 | `app/InboxClient.jsx` | The product using the connection: a live channel picker (`listChannels`) plus "Send to Slack" per conversation, with a "see how this worked" panel |
 | `app/integrations/IntegrationsClient.jsx` | Customer-facing integrations cards: Connect / Manage / Add another account — no internal ids shown |
 | `app/setup/SetupClient.jsx` | Live-checked setup guide teaching the MindCloud-side configuration |
+| `app/code/page.jsx` | "See Code Implementation": the three pieces, a sequence diagram, and these files' real source read off disk |
 | `app/layout.jsx`, `app/globals.css` | The mock SaaS shell |
 
 Two SDK behaviors this code depends on: `sdk.getIntegrations()` with **no arguments returns the SDK's cached list** — pass `{ includeWorkflows: true }` (any options object) to force a refetch; and `sdk.install/modify` accept an **`onClose` callback** that fires when the dialog closes by any path (Finish, X, backdrop) — the reliable "refetch state now" hook.
@@ -111,11 +112,30 @@ POST /v2/universal/apps/{appSlug}/actions/{actionSlug}/run
 → 200 { "success": true, "data": [...], "meta": { ... } }
 ```
 
+**`actionSlug` is the docs-style kebab slug, not the catalog's camelCase id:**
+`listChannels` is addressed as `list-channels`, `sendChannelMessage` as
+`send-channel-message`. A camelCase id returns
+`UNIVERSAL_ACTION_NOT_FOUND` ("No Universal API action matched...").
+
 - `installationId` and `connectionId` are mutually exclusive (`CONNECTION_SELECTOR_CONFLICT`).
 - Optional `endUserId` alongside `installationId` acts as a consistency check (mismatch → 404 `INSTALLATION_NOT_FOUND`).
 - Error codes: `INSTALLATION_NOT_FOUND` (404), `APP_NOT_IN_INSTALLATION` (404, the app isn't part of that installation's integration), `NO_END_USER_CONNECTION` (400, the end user hasn't connected that app yet), `CONNECTION_REQUIRED` (400, multiple connections for the same app on one installation — list them and call with `connectionId` alone).
 - Optional response controls: `fields`, `limit`, `offset`, `sort`, `where` (honored where the action supports them).
 - Requires API key access level `run_workflows` or higher.
+
+### Check the key and the organization's capabilities
+
+```
+GET /v2/me
+→ 200 { "success": true, "data": {
+    "apiKey": { "id": "...", "companyId": "...", "accessLevel": "full_access", "isAdmin": false },
+    "companyId": "...",
+    "company": { "id": "...", "name": "...", "embedded": { "isEnabled": true } } } }
+```
+
+This is the supported way to detect enabled capabilities. Do NOT infer the
+caller's organization from `GET /v2/companies`: an admin key may list every
+organization, so the first row is not necessarily yours.
 
 ### Discovery and connection listing (server-side)
 
@@ -139,7 +159,8 @@ Per-app human docs with the same slugs and schemas: https://mindcloud.co/docs/un
 ## Adapting these patterns to another codebase
 
 1. **Identity:** replace `demo-user-1` in `app/api/embedded-token/route.js` with the signed-in user's id from your session, and replace `lib/demoUserStore.js` with a `mindcloud_end_user_id` column on your users table.
-2. **Authorization:** gate your equivalent of `/api/run-action` — verify the `installationId` belongs to the signed-in customer before running actions with it (store installationIds per user when the SDK's `onAuthenticationComplete` fires, or verify via `GET /v2/connections`).
+2. **Authorization:** gate your equivalents of `/api/slack-channels` and `/api/send-to-slack` — verify the `installationId` belongs to the signed-in customer before running actions with it (store installationIds per user, or verify via `GET /v2/connections`).
 3. **Secrets:** the API key stays server-side, in env/secret storage. The browser only ever holds the per-end-user token.
 4. **Framework:** nothing here is Next.js-specific. You need: one backend endpoint that mints end-user tokens, one page that loads the SDK script and renders `sdk.getIntegrations()`, and backend calls to the Universal API run endpoint. Ports to any stack.
-5. **MindCloud-side setup** (done once by the vendor in the dashboard, not via API): enable Embedded, create an integration (Connect-Only for pure API use), attach the apps customers should connect, optionally define metadata (options) the connect dialog collects per installation.
+5. **MindCloud-side setup** (done once by the vendor in the dashboard, not via API): have Embedded enabled for the organization, switch on "Connecting through your codebase?" in Embedded, then create an API integration and pick the apps customers should connect. Optionally define metadata (options) the connect dialog collects per installation.
+6. **Key handling:** this demo lets the setup page write the key to `.env.local` (`lib/apiKey.js`, `app/api/configure/route.js`) because it is a local demo. In your app the key comes from your secret store — delete that path.

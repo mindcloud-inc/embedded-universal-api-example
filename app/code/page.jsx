@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import ArchitectureDiagram from './ArchitectureDiagram.jsx';
+import CodeExplorer from './CodeExplorer.jsx';
 
 export const metadata = { title: 'Code Implementation — Beacon' };
 
@@ -49,6 +50,12 @@ const readFile = (file) => {
 };
 
 export default function CodePage() {
+  // Read the files on the server, hand the contents to the client explorer.
+  const sections = SECTIONS.map((section) => ({
+    ...section,
+    files: section.files.map((file) => ({ ...file, code: readFile(file.file) }))
+  }));
+
   return (
     <>
       <header className="page-header">
@@ -60,29 +67,7 @@ export default function CodePage() {
         <ArchitectureDiagram />
       </div>
 
-      {SECTIONS.map((section) => (
-        <section key={section.step} className="code-section">
-          <div className="code-section-header">
-            <span className="code-section-step">{section.step}</span>
-            <div>
-              <h2>
-                {section.title} <span className="code-section-where">{section.where}</span>
-              </h2>
-              <p>{section.summary}</p>
-            </div>
-          </div>
-
-          {section.files.map(({ file, caption }) => (
-            <div key={file} className="code-file">
-              <div className="code-file-header">
-                <code className="code-file-name">{file}</code>
-                <span className="code-file-caption">{caption}</span>
-              </div>
-              <pre className="code-block">{readFile(file)}</pre>
-            </div>
-          ))}
-        </section>
-      ))}
+      <CodeExplorer sections={sections} />
 
       <div className="notice">
         <p>
