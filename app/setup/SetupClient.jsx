@@ -1,18 +1,16 @@
 'use client';
 
-// The guided path for a developer who has never seen MindCloud. Some steps
-// happen in the MindCloud dashboard and can't be detected from here, so they
-// show a step number; the ones this app can verify show a live checkmark.
-// When the verifiable ones are green, the rest of the app unlocks.
+// The guided path for a developer who has never seen MindCloud. Every step is
+// verified live from the API, so nothing renders until both checks have
+// settled — an unloaded step is indistinguishable from an unfinished one.
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { useMindCloud } from '../../lib/useMindCloud.js';
 import { getSlackContext } from '../../lib/getSlackContext.js';
 
 // Every step shows its number until it is verified, then flips to a check.
-// Steps this app can't verify (dashboard-only) simply keep their number.
 const StepMarker = ({ step, index }) => {
-  if (!step.manual && step.done) {
+  if (step.done) {
     return <span className="status-dot done">✓</span>;
   }
 
@@ -20,7 +18,7 @@ const StepMarker = ({ step, index }) => {
 };
 
 export default function SetupClient() {
-  const { integrations, refresh } = useMindCloud();
+  const { integrations, isSettled, refresh } = useMindCloud();
   const slack = getSlackContext(integrations);
 
   // Everything the API key can verify about the MindCloud side of setup.
@@ -37,6 +35,10 @@ export default function SetupClient() {
       setStatus({ success: false, message: statusError.message });
     }
   }, []);
+
+  // The SDK never loads without a key, so its load isn't awaited in that case.
+  const needsApiKey = status !== null && !status.company;
+  const isReady = status !== null && (isSettled || needsApiKey);
 
   useEffect(() => {
     loadStatus();
@@ -123,9 +125,13 @@ export default function SetupClient() {
       )
     },
     {
-      manual: true,
+      // Creating an API integration is only possible once this is on, so the
+      // integration existing is proof enough.
+      done: !!slack.integration,
       title: 'Turn on API access in Embedded',
-      body: (
+      body: slack.integration ? (
+        <p>API access is on for this organization.</p>
+      ) : (
         <p>
           In{' '}
           <a href="https://app.mindcloud.co/embedded" target="_blank" rel="noopener noreferrer">
@@ -164,10 +170,30 @@ export default function SetupClient() {
     }
   ];
 
+  // Skeletons mirror the real step cards so nothing jumps when data lands.
+  if (!isReady) {
+    return (
+      <div className="setup-steps">
+        {[0, 1, 2, 3, 4, 5].map((index) => (
+          <div key={index} className="setup-step">
+            <div className="setup-step-header">
+              <span className="skeleton skeleton-dot" />
+              <span className="skeleton skeleton-line skeleton-title" />
+            </div>
+            <div className="setup-step-body">
+              <span className="skeleton skeleton-line" />
+              <span className="skeleton skeleton-line skeleton-line-short" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="setup-steps">
       {steps.map((step, index) => (
-        <div key={step.title} className={`setup-step ${!step.manual && step.done ? 'done' : ''}`}>
+        <div key={step.title} className={`setup-step ${step.done ? 'done' : ''}`}>
           <div className="setup-step-header">
             <StepMarker step={step} index={index} />
             <h2>{step.title}</h2>

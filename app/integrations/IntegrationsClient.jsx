@@ -35,8 +35,27 @@ export default function IntegrationsClient() {
     );
   }
 
+  // Skeleton cards keep the grid's shape so the real cards don't shift in.
   if (isLoading) {
-    return <div className="notice">Loading integrations…</div>;
+    return (
+      <div className="card-grid">
+        {[0, 1].map((index) => (
+          <div key={index} className="card">
+            <div className="card-header">
+              <span className="skeleton skeleton-icon" />
+              <span className="skeleton skeleton-line skeleton-title" />
+            </div>
+            <p className="card-description">
+              <span className="skeleton skeleton-line" />
+              <span className="skeleton skeleton-line skeleton-line-short" />
+            </p>
+            <div className="card-actions">
+              <span className="skeleton skeleton-button" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   }
 
   if (integrations.length === 0) {
